@@ -467,7 +467,7 @@ def profile():
     gh = get_github_data(gh_user)
     lc = get_leetcode_data(lc_user)
     
-    if not gh and not lc: return jsonify({"error": "User not found"}), 404
+    if not gh and not lc: return jsonify({"error": "Server Overload ! Try again after some time !"}), 404
 
     gh_safe = gh or {"repos":0, "stars":0, "forks":0, "languages":{}, "followers":0, "created_at":None, "top_lang": "Unknown"}
     lc_safe = lc or {"total":0, "hard":0, "medium":0, "easy":0}
