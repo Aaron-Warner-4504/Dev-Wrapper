@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Wrapped 2025</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Tilt.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --spotify-black: #121212;
+            --spotify-green: #1DB954;
+            --spotify-grey: #282828;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--spotify-black);
+            color: white;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- Scroll Snap --- */
+        .snap-container {
+            height: 100vh;
+            width: 100vw;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+        .snap-container::-webkit-scrollbar { display: none; }
+
+        section {
+            height: 100vh;
+            width: 100vw;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* --- Cards --- */
+        .wrapped-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .wrapped-card:hover {
+            border-color: var(--spotify-green);
+            transform: scale(1.01);
+        }
+
+        /* --- Aura Glow --- */
+        .aura-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            z-index: -1;
+            animation: pulse 5s infinite alternate;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
+        /* --- Animations --- */
+        .fade-in { opacity: 0; transform: translateY(30px); transition: all 0.8s ease; }
+        section.active .fade-in { opacity: 1; transform: translateY(0); }
+
+        /* --- Custom Inputs --- */
+        .spot-input {
+            background: #282828;
+            border: 1px solid transparent;
+            color: white;
+            transition: 0.3s;
+        }
+        .spot-input:focus { border-color: #1DB954; outline: none; background: #333; }
+        
+        .loader {
+            display: flex; gap: 5px; align-items: flex-end; height: 30px;
+        }
+        .bar { width: 8px; background: #1DB954; animation: music 1s infinite ease-in-out; }
+        .bar:nth-child(2) { animation-delay: 0.2s; }
+        .bar:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes music { 0%, 100% { height: 10px; } 50% { height: 30px; } }
+
+        /* --- Specific Elements --- */
+        .badge-icon {
+            font-size: 3rem;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+        }
+    </style>
+</head>
+<body>
+
+    <!-- INPUT VIEW -->
+    <div id="input-view" class="h-screen w-full flex flex-col items-center justify-center bg-black relative p-6">
+        <div class="absolute inset-0 z-0">
+            <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-green-900/30 rounded-full blur-[100px]"></div>
+            <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/30 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div class="z-10 w-full max-w-md text-center">
+        <h2 class="text-5xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-red-200 to-red-600">
+                DEV
+        </h2>
+            <h1 class="text-7xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-green-600">
+                WRAPPED
+            </h1>
+            <p class="text-gray-400 mb-8 font-mono text-sm">INITIALIZING DEVELOPER SEQUENCE_2025</p>
+
+            <form id="fetch-form" class="space-y-4">
+                <input type="text" id="gh-input" placeholder="GitHub Username" class="spot-input w-full px-6 py-4 rounded-full text-lg text-center placeholder-gray-500">
+                <input type="text" id="lc-input" placeholder="LeetCode Username (Optional)" class="spot-input w-full px-6 py-4 rounded-full text-lg text-center placeholder-gray-500">
+                
+                <button type="submit" class="w-full bg-[#1DB954] text-black font-black py-4 rounded-full text-xl hover:scale-105 transition-transform mt-6 shadow-[0_0_20px_rgba(29,185,84,0.4)]">
+                    GENERATE STORY
+                </button>
+            </form>
+            <p id="error-msg" class="text-red-400 mt-4 hidden bg-red-900/20 py-2 rounded font-mono text-sm"></p>
+        </div>
+    </div>
+
+    <!-- LOADING -->
+    <div id="loading-view" class="hidden h-screen w-full flex flex-col items-center justify-center bg-black">
+        <div class="loader mb-4"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+        <h2 class="text-white font-mono tracking-widest animate-pulse">ANALYZING REPOS...</h2>
+        <p id="loading-text" class="text-gray-500 text-xs mt-2 font-mono">Connecting to LangChain Agents...</p>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results-view" class="hidden snap-container"></div>
+
+    <script>
+        let currentGH = '';
+
+        document.getElementById('fetch-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const gh = document.getElementById('gh-input').value.trim();
+            const lc = document.getElementById('lc-input').value.trim();
+            
+            if(!gh) return showError("GitHub username is required.");
+            currentGH = gh;
+
+            document.getElementById('input-view').classList.add('hidden');
+            document.getElementById('loading-view').classList.remove('hidden');
+
+            try {
+                // 1. Fetch Core Profile (GET)
+                const url = `/api/profile?gh_username=${encodeURIComponent(gh)}&lc_username=${encodeURIComponent(lc)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if(data.error) throw new Error(data.error);
+
+                // 2. Fetch Extras in Background (Async POST requests)
+                const extrasPromise = fetchExtras(gh);
+
+                // 3. Render Core
+                renderWrapped(data, extrasPromise);
+                
+                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('results-view').classList.remove('hidden');
+                initObservers();
+                initTilt();
+
+            } catch(err) {
+                document.getElementById('loading-view').classList.add('hidden');
+                document.getElementById('input-view').classList.remove('hidden');
+                showError(err.message || "Failed to connect to backend.");
+            }
+        });
+
+        async function fetchExtras(gh) {
+            // Helper to fetch JSON from POST endpoints
+            const post = (url) => fetch(url, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({gh_username: gh})
+            }).then(r => r.json()).catch(() => null);
+
+            // Parallel fetch of add-on features
+            const [timeline, personality, badges, skills, bugs, opensource] = await Promise.all([
+                post('/api/timeline'),
+                post('/api/personality'),
+                post('/api/badges'),
+                post('/api/skills'),
+                post('/api/bug_predictor'),
+                post('/api/opensource')
+            ]);
+
+            return { timeline, personality, badges, skills, bugs, opensource };
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        async function renderWrapped(data, extrasPromise) {
+            const container = document.getElementById('results-view');
+            let html = '';
+            const user = data.username;
+            
+            // --- 1. INTRO ---
+            html += `
+            <section class="active relative overflow-hidden">
+                <div class="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+                    <span class="text-[20rem] font-black text-white">2025</span>
+                </div>
+                <div class="fade-in text-center z-10">
+                    <div class="text-sm font-mono text-[#1DB954] mb-4 tracking-[0.5em] uppercase">System Boot...</div>
+                    <h1 class="text-6xl md:text-8xl font-black mb-6 tracking-tighter">
+                        WELCOME <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#1DB954] to-white">${user}</span>
+                    </h1>
+                    <p class="text-xl text-gray-400 font-light">Your coding journey has been... <span class="italic text-white">eventful.</span></p>
+                </div>
+                <div class="absolute bottom-12 animate-pulse text-xs font-mono text-gray-500">SCROLL TO DECRYPT</div>
+            </section>`;
+
+            // --- 2. CODE AURA ---
+            html += `
+            <section>
+                <div class="absolute inset-0 bg-gradient-to-b from-black via-black to-[${data.aura.color}]/20 pointer-events-none"></div>
+                <div class="aura-glow" style="background: ${data.aura.color}; opacity: 0.3;"></div>
+                
+                <div class="fade-in text-center z-10 w-full max-w-2xl">
+                    <div class="mb-4 text-xs font-bold text-white/50 tracking-widest uppercase">Soul Analysis</div>
+                    <div class="wrapped-card p-10 bg-black/60 backdrop-blur-2xl border border-white/10 relative overflow-hidden group">
+                        <div class="absolute top-0 left-0 w-1 h-full" style="background: ${data.aura.color}"></div>
+                        <h2 class="text-5xl md:text-7xl font-black mb-4 tracking-tight" style="color: ${data.aura.color}">${data.aura.type}</h2>
+                        <div class="h-px w-full bg-gradient-to-r from-transparent via-white/20 to-transparent my-6"></div>
+                        <p class="text-2xl text-white font-medium italic leading-relaxed">"${data.aura.desc}"</p>
+                        <div class="mt-8 flex justify-center items-center gap-3 text-xs text-gray-400 font-mono bg-white/5 py-2 px-4 rounded-full w-fit mx-auto">
+                            <span>DETECTED SIGNATURE:</span>
+                            <span class="text-white font-bold">${data.gh ? data.gh.top_lang : 'UNKNOWN'}</span>
+                        </div>
+                    </div>
+                </div>
+            </section>`;
+
+            // --- 3. RPG CHARACTER SHEET ---
+            html += `
+            <section>
+                <div class="fade-in w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                    <div class="text-left space-y-6">
+                        <div>
+                            <div class="text-[#1DB954] font-mono text-xs mb-2">CLASS DETECTED</div>
+                            <h2 class="text-6xl font-black text-white leading-none mb-4">${data.rpg.class.toUpperCase()}</h2>
+                            <div class="flex items-center gap-3">
+                                <span class="px-3 py-1 bg-white text-black font-bold text-xs rounded uppercase">Lvl ${data.rpg.level}</span>
+                                <span class="h-px flex-1 bg-white/20"></span>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-[#1DB954]/10 border-l-4 border-[#1DB954] rounded-r-xl">
+                            <p class="text-gray-200 text-lg leading-relaxed">${data.rpg.class_desc}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-xs font-bold text-purple-400 uppercase tracking-widest">2026 Omen</div>
+                            <p class="text-xl font-serif italic text-white/90">"${data.horoscope.prophecy}"</p>
+                            <div class="text-xs text-gray-500 mt-2">Inventory Item: <span class="text-white">${data.horoscope.lucky_item}</span></div>
+                        </div>
+                    </div>
+                    <div class="wrapped-card p-8 bg-gradient-to-br from-gray-900 to-black border-white/10 aspect-square flex flex-col items-center justify-center relative">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/grid-me.png')] opacity-20"></div>
+                        <div class="relative w-full h-full">
+                            <canvas id="rpgChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>`;
+
+            // --- 4. INVENTORY & SYNERGIES ---
+            const stats = data.gh || {repos:0, stars:0, followers:0};
+            html += `
+            <section>
+                <div class="fade-in w-full max-w-4xl space-y-12">
+                    <div class="text-center">
+                        <h2 class="text-4xl font-black mb-2">THE ARSENAL</h2>
+                        <div class="text-sm text-gray-500 font-mono">STATS_LOG_2025</div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="wrapped-card p-6 text-center group hover:bg-[#1DB954]/10 transition-colors">
+                            <div class="text-xs text-gray-500 mb-2 font-mono">PROJECTS</div>
+                            <div class="text-5xl font-black text-white mb-2 group-hover:scale-110 transition-transform duration-300">${stats.repos}</div>
+                            <div class="h-1 w-8 bg-[#1DB954] mx-auto rounded-full"></div>
+                        </div>
+                        <div class="wrapped-card p-6 text-center group hover:bg-blue-500/10 transition-colors">
+                            <div class="text-xs text-gray-500 mb-2 font-mono">STARS</div>
+                            <div class="text-5xl font-black text-white mb-2 group-hover:scale-110 transition-transform duration-300">${stats.stars}</div>
+                            <div class="h-1 w-8 bg-blue-500 mx-auto rounded-full"></div>
+                        </div>
+                        <div class="wrapped-card p-6 text-center group hover:bg-purple-500/10 transition-colors">
+                            <div class="text-xs text-gray-500 mb-2 font-mono">XP GAINED</div>
+                            <div class="text-5xl font-black text-white mb-2 group-hover:scale-110 transition-transform duration-300">${data.lc ? data.lc.total : 0}</div>
+                            <div class="h-1 w-8 bg-purple-500 mx-auto rounded-full"></div>
+                        </div>
+                    </div>
+                    ${data.synergies.length > 0 ? `
+                        <div>
+                            <div class="text-center mb-6 text-xs font-bold text-gray-600 uppercase tracking-[0.2em]">Synergies Unlocked</div>
+                            <div class="flex flex-wrap justify-center gap-4">
+                                ${data.synergies.map(s => `
+                                    <div class="px-6 py-3 rounded-full bg-white/5 border border-white/10 flex items-center gap-3 hover:bg-white/10 transition-all cursor-default">
+                                        <span class="text-xl">${s.icon}</span>
+                                        <span class="font-bold text-sm text-gray-200">${s.title}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </section>`;
+
+            container.innerHTML = html;
+
+            // Wait for extras to load then append
+            extrasPromise.then(extras => {
+                if(!extras) return;
+                
+                let extraHtml = '';
+
+                // --- 5. PRODUCTIVITY TIMELINE ---
+                if(extras.timeline && extras.timeline.analysis) {
+                    const tData = extras.timeline.timeline;
+                    const labels = Object.keys(tData);
+                    const values = Object.values(tData);
+                    const analysis = extras.timeline.analysis;
+
+                    extraHtml += `
+                    <section>
+                        <div class="fade-in w-full max-w-5xl">
+                            <div class="text-center mb-8">
+                                <h2 class="text-4xl font-black mb-2">THE TIMELINE</h2>
+                                <p class="text-gray-400">"${analysis.summary}"</p>
+                            </div>
+                            <div class="wrapped-card p-6 bg-black/50 h-64 w-full mb-6 relative">
+                                <canvas id="timelineChart"></canvas>
+                            </div>
+                            <div class="flex justify-center gap-8 text-center text-sm">
+                                <div>
+                                    <div class="text-green-400 font-bold uppercase text-xs">Peak Performance</div>
+                                    <div class="font-mono text-white">${analysis.best_month || "N/A"}</div>
+                                </div>
+                                <div>
+                                    <div class="text-red-400 font-bold uppercase text-xs">Downtime</div>
+                                    <div class="font-mono text-white">${analysis.worst_month || "N/A"}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>`;
+                }
+
+                // --- 6. PERSONALITY TYPE ---
+                if(extras.personality && extras.personality.type !== "Unknown") {
+                    const p = extras.personality;
+                    extraHtml += `
+                    <section>
+                        <div class="fade-in text-center max-w-3xl">
+                            <div class="text-sm font-bold text-purple-400 uppercase tracking-widest mb-4">Psychometric Analysis</div>
+                            <h1 class="text-6xl font-black text-white mb-8">${p.type}</h1>
+                            
+                            <div class="flex flex-wrap justify-center gap-2 mb-10">
+                                ${(p.traits || []).map(t => `<span class="px-4 py-1 rounded-full border border-purple-500/50 text-purple-200 text-sm">${t}</span>`).join('')}
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-6 text-left">
+                                <div class="wrapped-card p-6 border-l-4 border-l-green-500">
+                                    <h3 class="font-bold text-green-400 mb-2">Strengths</h3>
+                                    <ul class="text-sm text-gray-300 list-disc list-inside">
+                                        ${(p.strengths || []).map(s => `<li>${s}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="wrapped-card p-6 border-l-4 border-l-red-500">
+                                    <h3 class="font-bold text-red-400 mb-2">Weaknesses</h3>
+                                    <ul class="text-sm text-gray-300 list-disc list-inside">
+                                        ${(p.weaknesses || []).map(w => `<li>${w}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>`;
+                }
+
+                // --- 7. OPEN SOURCE IMPACT ---
+                if(extras.opensource) {
+                    const os = extras.opensource;
+                    const insights = os.insights || {};
+                    extraHtml += `
+                    <section>
+                        <div class="fade-in w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                            <div>
+                                <div class="text-[#1DB954] font-mono text-xs mb-2">COMMUNITY IMPACT</div>
+                                <h2 class="text-5xl font-black text-white leading-none mb-6">${insights.title || 'OPEN SOURCE'}</h2>
+                                
+                                <div class="p-6 bg-white/5 border-l-4 border-purple-500 rounded-r-xl mb-8">
+                                    <p class="text-gray-200 text-lg leading-relaxed">"${insights.summary || 'A growing force in the community.'}"</p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="wrapped-card p-4 text-center">
+                                        <div class="text-3xl font-bold text-white mb-1">${os.merged_prs || 0}</div>
+                                        <div class="text-[10px] uppercase text-gray-500 tracking-widest">Merged PRs</div>
+                                    </div>
+                                    <div class="wrapped-card p-4 text-center">
+                                        <div class="text-3xl font-bold text-white mb-1">${os.issues_opened || 0}</div>
+                                        <div class="text-[10px] uppercase text-gray-500 tracking-widest">Issues</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="wrapped-card p-8 bg-black/60 flex flex-col items-center text-center">
+                                <div class="text-6xl mb-4">🌍</div>
+                                <h3 class="text-xl font-bold text-white mb-2">Contribution Vibe: ${insights.vibe || 'Steady'}</h3>
+                                <p class="text-sm text-gray-400 mb-6">${insights.strength || 'Consistent effort'}</p>
+                                
+                                <div class="w-full text-left">
+                                    <div class="text-xs font-bold text-gray-600 uppercase mb-3">Top Contributions</div>
+                                    <ul class="space-y-2">
+                                        ${(os.top_contributions || []).slice(0,3).map(c => `
+                                            <li class="flex justify-between text-sm text-gray-300 border-b border-white/5 pb-2">
+                                                <span>${c.repo}</span>
+                                                <span class="text-[#1DB954]">${c.contributions} commits</span>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>`;
+                }
+
+                // --- 8. BADGES ---
+                if(extras.badges && extras.badges.badges && extras.badges.badges.length > 0) {
+                    extraHtml += `
+                    <section>
+                        <div class="fade-in w-full max-w-4xl text-center">
+                            <h2 class="text-4xl font-black mb-12">HALL OF FAME</h2>
+                            <div class="flex flex-wrap justify-center gap-6">
+                                ${extras.badges.badges.map(b => `
+                                    <div class="wrapped-card p-6 w-48 flex flex-col items-center hover:bg-white/5 transition-colors" data-tilt>
+                                        <div class="badge-icon mb-4">${b.emoji}</div>
+                                        <h3 class="font-bold text-white text-sm mb-2">${b.name}</h3>
+                                        <p class="text-xs text-gray-400 leading-tight">${b.desc}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </section>`;
+                }
+
+                // --- 9. SKILLS & BUGS ---
+                if((extras.skills && extras.skills.gaps && extras.skills.gaps.length > 0) || (extras.bugs && extras.bugs.predictions && extras.bugs.predictions.length > 0)) {
+                    extraHtml += `
+                    <section>
+                        <div class="fade-in w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <!-- Skill Gaps -->
+                            <div>
+                                <h3 class="text-2xl font-bold mb-6 text-blue-400">Skill Radar</h3>
+                                <div class="space-y-4">
+                                    ${(extras.skills && extras.skills.gaps ? extras.skills.gaps : []).map(g => `
+                                        <div class="wrapped-card p-4 border-l-4 border-l-blue-500">
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="font-bold text-white">${g.skill}</span>
+                                                <span class="text-[10px] uppercase bg-blue-900 text-blue-200 px-2 py-0.5 rounded">${g.severity} Priority</span>
+                                            </div>
+                                            <p class="text-xs text-gray-400">${g.roadmap}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Bug Predictor -->
+                            <div>
+                                <h3 class="text-2xl font-bold mb-6 text-orange-400">Bug Forecast</h3>
+                                <div class="space-y-4">
+                                    ${(extras.bugs && extras.bugs.predictions ? extras.bugs.predictions : []).map(b => `
+                                        <div class="wrapped-card p-4 border-l-4 border-l-orange-500">
+                                            <div class="font-bold text-white mb-1">⚠️ ${b.bug}</div>
+                                            <p class="text-xs text-gray-400">${b.tip}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </section>`;
+                }
+
+                // --- 10. MENTORSHIP ---
+                extraHtml += `
+                <section>
+                    <div class="fade-in w-full max-w-5xl">
+                        <div class="text-center mb-12">
+                            <div class="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 text-[10px] font-bold tracking-widest rounded mb-3">AI MENTORSHIP</div>
+                            <h2 class="text-5xl font-black">THE REALITY CHECK</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="wrapped-card p-8 border-t-4 border-t-green-500 hover:-translate-y-2 transition-transform duration-500">
+                                <div class="text-4xl mb-6">✨</div>
+                                <h3 class="font-bold text-xl text-white mb-4">The Good</h3>
+                                <p class="text-gray-400 text-sm leading-relaxed">${data.feedback.doing_right}</p>
+                            </div>
+                            <div class="wrapped-card p-8 border-t-4 border-t-yellow-500 hover:-translate-y-2 transition-transform duration-500 delay-100">
+                                <div class="text-4xl mb-6">🚧</div>
+                                <h3 class="font-bold text-xl text-white mb-4">The Bad</h3>
+                                <p class="text-gray-400 text-sm leading-relaxed">${data.feedback.doing_wrong}</p>
+                            </div>
+                            <div class="wrapped-card p-8 border-t-4 border-t-red-500 bg-gradient-to-b from-red-900/10 to-transparent hover:-translate-y-2 transition-transform duration-500 delay-200">
+                                <div class="text-4xl mb-6">❤️‍🔥</div>
+                                <h3 class="font-bold text-xl text-white mb-4">The Reality</h3>
+                                <p class="text-gray-400 text-sm leading-relaxed font-medium">${data.feedback.reality_check}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>`;
+
+                // --- 11. TOXIC CODE CHECK ---
+                extraHtml += `
+                <section>
+                    <div class="fade-in w-full max-w-2xl text-center">
+                        <h2 class="text-4xl font-black mb-4">DARE TO ROAST?</h2>
+                        <p class="text-gray-400 mb-8">Paste a snippet of your code. The AI will judge you.</p>
+                        
+                        <div class="wrapped-card p-1 bg-black/50">
+                            <textarea id="code-snippet" rows="6" class="w-full bg-transparent text-white p-4 font-mono text-sm focus:outline-none resize-none" placeholder="// Paste your spaghetti code here..."></textarea>
+                        </div>
+                        
+                        <button onclick="roastCode()" class="mt-6 px-8 py-3 bg-red-600 text-white font-bold rounded-full hover:bg-red-500 transition-colors">
+                            🔥 ROAST MY CODE
+                        </button>
+                        
+                        <div id="roast-result" class="mt-8 hidden text-left wrapped-card p-6 border-red-500/50">
+                            <div id="roast-text" class="text-lg italic text-white mb-4"></div>
+                            <div class="flex gap-4 text-xs font-mono text-gray-400">
+                                <div>SEVERITY: <span id="roast-severity" class="text-red-400 font-bold"></span>/10</div>
+                                <div>FIX: <span id="roast-fix" class="text-green-400"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>`;
+
+                // --- 12. OUTRO ---
+                extraHtml += `
+                <section id="final-slide">
+                    <div class="w-full max-w-md perspective-1000" data-tilt>
+                        <div class="relative bg-black rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl group">
+                            <div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-[#1DB954]/20"></div>
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-[#1DB954]/20 rounded-full blur-[50px]"></div>
+                            <div class="relative p-8 flex flex-col items-center text-center">
+                                <div class="flex items-center gap-2 mb-8 opacity-60">
+                                    <div class="w-3 h-3 bg-[#1DB954] rounded-full"></div>
+                                    <span class="text-[10px] font-bold tracking-[0.3em]">DEV WRAPPED 2025</span>
+                                </div>
+                                <div class="relative mb-6">
+                                    <div class="absolute -inset-1 bg-gradient-to-tr from-[#1DB954] to-blue-500 rounded-full blur opacity-70 group-hover:opacity-100 transition duration-500"></div>
+                                    <img src="${data.gh?.avatar || 'https://github.com/github.png'}" class="relative w-24 h-24 rounded-full border-2 border-black">
+                                </div>
+                                <h2 class="text-3xl font-black text-white mb-1">${data.username}</h2>
+                                <div class="text-transparent bg-clip-text bg-gradient-to-r from-[#1DB954] to-blue-400 font-bold text-xs tracking-widest uppercase mb-8">
+                                    ${data.rpg.class} <span class="text-gray-600">|</span> LVL ${data.rpg.level}
+                                </div>
+                                <div class="w-full space-y-3 mb-8">
+                                    <div class="bg-white/5 p-4 rounded-xl backdrop-blur-sm border border-white/5">
+                                        <p class="text-sm italic text-gray-300">"${data.feedback.toast}" 🥂</p>
+                                    </div>
+                                    <div class="p-4 bg-red-500/10 rounded-xl border border-red-500/20">
+                                        <span class="text-xl mr-2">💀</span> 
+                                        <span class="italic text-gray-300 text-sm">"${data.feedback.roast}"</span>
+                                    </div>
+                                </div>
+                                <div class="w-full flex justify-between items-end border-t border-white/10 pt-4">
+                                    <div class="text-left">
+                                        <div class="text-[10px] text-gray-500">TOP SKILL</div>
+                                        <div class="font-bold text-sm">${data.gh ? data.gh.top_lang : 'N/A'}</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-[10px] text-gray-500">TOTAL SCORE</div>
+                                        <div class="font-bold text-2xl text-white">${data.rpg.level * 1000 + (data.gh?.stars * 10 || 0)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="location.reload()" class="mt-10 px-8 py-3 bg-white text-black rounded-full font-bold text-sm hover:scale-105 transition-transform flex items-center gap-2">
+                        <span>↻</span> REPLAY
+                    </button>
+                </section>`;
+
+                // Use insertAdjacentHTML instead of += to prevent destroying existing chart canvas
+                container.insertAdjacentHTML('beforeend', extraHtml);
+                
+                // Re-init observers for new sections
+                initObservers();
+                initTilt();
+
+                // Render Timeline Chart (if data exists)
+                if(extras.timeline && extras.timeline.timeline) {
+                    const ctxT = document.getElementById('timelineChart').getContext('2d');
+                    new Chart(ctxT, {
+                        type: 'line',
+                        data: {
+                            labels: Object.keys(extras.timeline.timeline),
+                            datasets: [{
+                                label: 'Activity Score',
+                                data: Object.values(extras.timeline.timeline),
+                                borderColor: '#1DB954',
+                                backgroundColor: 'rgba(29, 185, 84, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { display: false }, ticks: { color: '#666', font: { size: 10 } } },
+                                y: { display: false }
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Initial Chart Render (RPG)
+            setTimeout(() => {
+                const ctx = document.getElementById('rpgChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['STR', 'DEX', 'INT', 'WIS', 'CHA'],
+                        datasets: [{
+                            label: 'Stats',
+                            data: [data.rpg.stats.STR, data.rpg.stats.DEX, data.rpg.stats.INT, data.rpg.stats.WIS, data.rpg.stats.CHA],
+                            backgroundColor: 'rgba(29, 185, 84, 0.4)',
+                            borderColor: '#1DB954',
+                            pointBackgroundColor: '#fff',
+                            borderWidth: 2,
+                            pointRadius: 4
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            r: {
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                angleLines: { color: 'rgba(255,255,255,0.1)' },
+                                pointLabels: { color: '#fff', font: {family: 'Inter', size: 12, weight: 'bold'} },
+                                ticks: { display: false, max: 100, stepSize: 20 },
+                                min: 0,
+                                max: 100
+                            }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }, 100);
+        }
+
+        async function roastCode() {
+            const code = document.getElementById('code-snippet').value;
+            if(!code) return;
+            
+            const btn = document.querySelector('button[onclick="roastCode()"]');
+            btn.textContent = "ROASTING...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/toxic_code', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({code})
+                });
+                const data = await res.json();
+                
+                document.getElementById('roast-result').classList.remove('hidden');
+                document.getElementById('roast-text').textContent = `"${data.roast}"`;
+                document.getElementById('roast-severity').textContent = data.severity;
+                document.getElementById('roast-fix').textContent = data.fix || "Check your formatting.";
+            } catch(e) {
+                alert("Failed to roast. Try again.");
+            } finally {
+                btn.textContent = "🔥 ROAST MY CODE";
+                btn.disabled = false;
+            }
+        }
+
+        function initObservers() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        if(entry.target.id === 'final-slide') triggerConfetti();
+                    } else {
+                        entry.target.classList.remove('active');
+                    }
+                });
+            }, { threshold: 0.3 });
+            document.querySelectorAll('section').forEach(s => observer.observe(s));
+        }
+
+        function triggerConfetti() {
+            var end = Date.now() + 3000;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#1DB954', '#fff'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#1DB954', '#fff'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        function initTilt() {
+            VanillaTilt.init(document.querySelectorAll("[data-tilt]"), { max: 10, speed: 400, glare: true, "max-glare": 0.2 });
+        }
+    </script>
+</body>
+</html>
