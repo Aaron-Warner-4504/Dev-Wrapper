@@ -120,9 +120,6 @@
         </div>
 
         <div class="z-10 w-full max-w-md text-center">
-        <h2 class="text-5xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-red-200 to-red-600">
-                DEV
-        </h2>
             <h1 class="text-7xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-green-600">
                 WRAPPED
             </h1>
@@ -138,6 +135,8 @@
             </form>
             <p id="error-msg" class="text-red-400 mt-4 hidden bg-red-900/20 py-2 rounded font-mono text-sm"></p>
         </div>
+        <!-- Updated Footer -->
+        <p class="absolute bottom-8 text-xs text-gray-600 font-mono">Made by Pranav Kodlinge</p>
     </div>
 
     <!-- LOADING -->
@@ -173,6 +172,7 @@
                 if(data.error) throw new Error(data.error);
 
                 // 2. Fetch Extras in Background (Async POST requests)
+                // We pass just the gh_username as the backend expects
                 const extrasPromise = fetchExtras(gh);
 
                 // 3. Render Core
@@ -195,7 +195,10 @@
             const post = (url) => fetch(url, {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({gh_username: gh})
-            }).then(r => r.json()).catch(() => null);
+            }).then(r => r.json()).catch(err => {
+                console.warn(`Failed to fetch ${url}`, err);
+                return null;
+            });
 
             // Parallel fetch of add-on features
             const [timeline, personality, badges, skills, bugs, opensource] = await Promise.all([
@@ -235,6 +238,7 @@
                     <p class="text-xl text-gray-400 font-light">Your coding journey has been... <span class="italic text-white">eventful.</span></p>
                 </div>
                 <div class="absolute bottom-12 animate-pulse text-xs font-mono text-gray-500">SCROLL TO DECRYPT</div>
+                <div class="absolute bottom-4 text-[10px] text-gray-600 font-mono">Made by Pranav Kodlinge</div>
             </section>`;
 
             // --- 2. CODE AURA ---
@@ -340,18 +344,15 @@
                 let extraHtml = '';
 
                 // --- 5. PRODUCTIVITY TIMELINE ---
-                if(extras.timeline && extras.timeline.analysis) {
-                    const tData = extras.timeline.timeline;
-                    const labels = Object.keys(tData);
-                    const values = Object.values(tData);
-                    const analysis = extras.timeline.analysis;
-
+                // Only render if we have actual timeline data keys
+                if(extras.timeline && extras.timeline.timeline && Object.keys(extras.timeline.timeline).length > 0) {
+                    const analysis = extras.timeline.analysis || {};
                     extraHtml += `
                     <section>
                         <div class="fade-in w-full max-w-5xl">
                             <div class="text-center mb-8">
                                 <h2 class="text-4xl font-black mb-2">THE TIMELINE</h2>
-                                <p class="text-gray-400">"${analysis.summary}"</p>
+                                <p class="text-gray-400">"${analysis.summary || "Coding through time."}"</p>
                             </div>
                             <div class="wrapped-card p-6 bg-black/50 h-64 w-full mb-6 relative">
                                 <canvas id="timelineChart"></canvas>
@@ -402,6 +403,7 @@
                 }
 
                 // --- 7. OPEN SOURCE IMPACT ---
+                // Render if object exists, even if counts are 0, to show the section
                 if(extras.opensource) {
                     const os = extras.opensource;
                     const insights = os.insights || {};
@@ -435,12 +437,12 @@
                                 <div class="w-full text-left">
                                     <div class="text-xs font-bold text-gray-600 uppercase mb-3">Top Contributions</div>
                                     <ul class="space-y-2">
-                                        ${(os.top_contributions || []).slice(0,3).map(c => `
+                                        ${(os.top_contributions || []).length > 0 ? (os.top_contributions || []).slice(0,3).map(c => `
                                             <li class="flex justify-between text-sm text-gray-300 border-b border-white/5 pb-2">
                                                 <span>${c.repo}</span>
                                                 <span class="text-[#1DB954]">${c.contributions} commits</span>
                                             </li>
-                                        `).join('')}
+                                        `).join('') : '<li class="text-sm text-gray-500 italic">No recent top contributions found.</li>'}
                                     </ul>
                                 </div>
                             </div>
@@ -602,6 +604,7 @@
                     <button onclick="location.reload()" class="mt-10 px-8 py-3 bg-white text-black rounded-full font-bold text-sm hover:scale-105 transition-transform flex items-center gap-2">
                         <span>↻</span> REPLAY
                     </button>
+                    <div class="mt-8 text-[10px] text-gray-700">Made by Pranav Kodlinge</div>
                 </section>`;
 
                 // Use insertAdjacentHTML instead of += to prevent destroying existing chart canvas
@@ -612,31 +615,42 @@
                 initTilt();
 
                 // Render Timeline Chart (if data exists)
-                if(extras.timeline && extras.timeline.timeline) {
-                    const ctxT = document.getElementById('timelineChart').getContext('2d');
-                    new Chart(ctxT, {
-                        type: 'line',
-                        data: {
-                            labels: Object.keys(extras.timeline.timeline),
-                            datasets: [{
-                                label: 'Activity Score',
-                                data: Object.values(extras.timeline.timeline),
-                                borderColor: '#1DB954',
-                                backgroundColor: 'rgba(29, 185, 84, 0.1)',
-                                tension: 0.4,
-                                fill: true,
-                                pointRadius: 4,
-                                pointHoverRadius: 6
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                x: { grid: { display: false }, ticks: { color: '#666', font: { size: 10 } } },
-                                y: { display: false }
-                            }
+                if(extras.timeline && extras.timeline.timeline && Object.keys(extras.timeline.timeline).length > 0) {
+                    // Use requestAnimationFrame to ensure the DOM has updated
+                    requestAnimationFrame(() => {
+                        const canvas = document.getElementById('timelineChart');
+                        if (canvas) {
+                            const ctxT = canvas.getContext('2d');
+                            new Chart(ctxT, {
+                                type: 'line',
+                                data: {
+                                    labels: Object.keys(extras.timeline.timeline),
+                                    datasets: [{
+                                        label: 'Activity Score',
+                                        data: Object.values(extras.timeline.timeline),
+                                        borderColor: '#1DB954',
+                                        backgroundColor: 'rgba(29, 185, 84, 0.1)',
+                                        borderWidth: 2,
+                                        tension: 0.4,
+                                        fill: true,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6,
+                                        pointBackgroundColor: '#1DB954'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    scales: {
+                                        x: { 
+                                            grid: { display: false }, 
+                                            ticks: { color: '#888', font: { size: 10 } } 
+                                        },
+                                        y: { display: false }
+                                    }
+                                }
+                            });
                         }
                     });
                 }
