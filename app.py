@@ -65,7 +65,7 @@ gemini_llm = None
 if GROQ_API_KEY:
     try:
         groq_llm = ChatGroq(
-            model="openai/gpt-oss-20b",
+            model="llama-3.3-70b-versatile",
             temperature=0.7,
             groq_api_key=GROQ_API_KEY,
             model_kwargs={"response_format": {"type": "json_object"}}
